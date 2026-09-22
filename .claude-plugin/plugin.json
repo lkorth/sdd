@@ -1,0 +1,8 @@
+{
+  "name": "sdd",
+  "description": "An opinionated form of spec-driven development. Write, change, and retire sdd requirement records.",
+  "version": "0.1.0",
+  "author": {
+    "name": "lkorth"
+  }
+}

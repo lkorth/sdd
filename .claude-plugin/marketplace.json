@@ -1,0 +1,17 @@
+{
+  "name": "sdd",
+  "owner": {
+    "name": "lkorth"
+  },
+  "metadata": {
+    "description": "The sdd skill for agents that write requirement records."
+  },
+  "plugins": [
+    {
+      "name": "sdd",
+      "source": "./",
+      "description": "An opinionated form of spec-driven development. Write, change, and retire sdd requirement records.",
+      "version": "0.1.0"
+    }
+  ]
+}
