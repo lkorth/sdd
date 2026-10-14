@@ -54,3 +54,27 @@ clone of this repository:
 claude plugin marketplace add AminBlg/SimpleEnglish && claude plugin install simple-english@simple-english
 claude plugin marketplace add ./sdd && claude plugin install sdd@sdd
 ```
+
+## The sdd tool
+
+The `sdd` tool answers questions about the records, so that you and your agent do not read
+whole files. Each answer gives the file and the line range of each record:
+
+```console
+$ sdd show L2_PER_004
+L2_PER_004: Acknowledgement is durable before deletion
+sdd/features/persistence.md:11-25  parent L1_LNK_001
+The system SHALL write an upload acknowledgement to durable storage before deleting the
+acknowledged record.
+
+$ sdd ancestors L2_PER_004 --short
+L1_LNK_001  sdd/features/link.md:11-25  An interrupted upload completes without duplicate delivery
+L0_001  sdd/system.md:5-18  Recorded data reaches the archive
+```
+
+The commands are `show`, `ancestors`, `children`, `list`, `search`, `features`, `next` and
+`delete`. Run `sdd --help` for the flags. Add `--json` to any command to get JSON.
+
+The tool is a static binary with no runtime. The plugin ships it for Linux and macOS, on amd64
+and arm64, at `skills/sdd/bin/sdd`. To use it yourself, put that directory on your `PATH`, or
+run `go install github.com/lkorth/sdd/cmd/sdd@latest`.

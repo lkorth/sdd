@@ -1,0 +1,14 @@
+#!/bin/sh
+# Runs the sdd binary for this machine. The binaries sit next to this file.
+set -e
+case "$(uname -s)" in
+  Linux) os=linux ;;
+  Darwin) os=darwin ;;
+  *) echo "sdd: no binary for $(uname -s). Build one with: go build ./cmd/sdd" >&2; exit 2 ;;
+esac
+case "$(uname -m)" in
+  x86_64 | amd64) arch=amd64 ;;
+  arm64 | aarch64) arch=arm64 ;;
+  *) echo "sdd: no binary for $(uname -m). Build one with: go build ./cmd/sdd" >&2; exit 2 ;;
+esac
+exec "$(dirname "$0")/sdd-$os-$arch" "$@"

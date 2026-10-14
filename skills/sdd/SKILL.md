@@ -1,12 +1,36 @@
 ---
 name: sdd
-description: Read and write sdd requirement records, the typed requirements in sdd/system.md and sdd/features/*.md. Use it to implement, test or review code against a record, or to cite a record ID. Also use it before you add, edit or retire a record.
+description: Read and write sdd requirement records, the typed requirements in sdd/system.md and sdd/features/*.md. Use it to find a record, to implement, test or review code against a record, or to cite a record ID. Also use it before you add, edit or retire a record.
 ---
 
 # sdd records
 
 A record is one requirement. It has an ID, a parent, and exactly one `SHALL`. Text that does
 not have the record shape is commentary, and it does not bind anything.
+
+## Finding records
+
+To find or read a record, use the `sdd` tool at `bin/sdd` in the directory of this skill. Do not
+read a whole feature file to find one record. The tool finds the `sdd/` directory from the
+working directory. For another project, add `--root <dir>`.
+
+| Command | Prints |
+|---|---|
+| `sdd show ID...` | The location, the fields and the obligation of each record |
+| `sdd ancestors ID` | The obligation of each parent, nearest first, up to L0 |
+| `sdd children ID` | One line for each child. Add `--all` for each descendant |
+| `sdd list` | One line for each record. Filter with `--level`, `--feature` and `--status` |
+| `sdd search PATTERN` | Each record line that matches a regular expression, ignoring case |
+| `sdd features` | Each feature code, its file and its record counts |
+| `sdd next LEVEL [CODE]` | The next free ID, for example `sdd next L2 LNK` |
+| `sdd delete ID` | Deletes the record and retires its ID. Read the writing rules first |
+
+`show`, `ancestors`, `children` and `list` also take `--short` for one line for each record, and
+`--full` for the whole record. Add `--json` to any command to get JSON.
+
+Each answer gives a location such as `sdd/features/link.md:29-43`. To read more, read only those
+lines. If `show` names a retired ID, it prints the ledger line, for example "Renamed to
+L1_NET_002". If an ID is missing or the search finds nothing, the exit code is 1.
 
 ## Reading a record
 

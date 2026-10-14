@@ -100,7 +100,7 @@ A feature can have no L1 records. Then its L2 records name an L0 record as their
 
 `<FEATURE>` is the code of the feature, in two to four capital letters. The file of the feature
 declares it. To give a new record its number, find the highest number for its prefix in the
-records and in the ledger. Add one.
+records and in the ledger. Add one. The command `sdd next L2 LNK` does this for you.
 
 An ID has only capital letters, digits and the `_` character. A double click selects the whole ID, and
 the ID is a legal part of a function name in most languages.
@@ -203,7 +203,13 @@ more important than a short one. If you cannot make a `SHALL` sentence short wit
 
 ## Retiring an ID
 
-Retire each spent ID that leaves the records. Add one line for the ID to `sdd/retired.jsonl`:
+To delete a record, run `sdd delete <ID> --reason "<why>"`. It removes the record from its file
+and adds the ledger line, with the date of today. If another record names the ID as its parent,
+in its obligation or in a scenario, the command changes nothing and lists those records. Change
+or delete them first. Then change or delete each test that cites the ID.
+
+In the other case, you give a record a new ID. Retire each spent ID that leaves the records.
+Add one line for the ID to `sdd/retired.jsonl`:
 
 ```json
 {"id": "L2_PER_003", "reason": "Replaced by a shorter timeout"}
