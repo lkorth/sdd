@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -388,4 +389,188 @@ func TestRootFromOutsideTheProject(t *testing.T) {
 			t.Errorf("exit %d, stdout %q, stderr %q, want %q", code, out, errOut, want)
 		}
 	})
+}
+
+type testCanvas struct {
+	Nodes []struct {
+		ID, Type, File, Subpath, Text, Label, Color string
+		X, Y, Width, Height                         int
+	}
+	Edges []struct{ ID, FromNode, ToNode string }
+}
+
+// parseCanvas parses a canvas, makes sure that each ID is unique and each edge resolves, and
+// returns the edges as "child -> parent", with the subpath or the text of each node.
+func parseCanvas(t *testing.T, out string) (testCanvas, []string) {
+	t.Helper()
+	var c testCanvas
+	if err := json.Unmarshal([]byte(out), &c); err != nil {
+		t.Fatalf("%v, output:\n%s", err, out)
+	}
+	hexID := regexp.MustCompile(`^[0-9a-f]{16}$`)
+	names := map[string]string{}
+	for _, n := range c.Nodes {
+		if !hexID.MatchString(n.ID) || names[n.ID] != "" {
+			t.Errorf("node ID %q is not 16 hex digits, or is not unique", n.ID)
+		}
+		switch {
+		case n.Subpath != "":
+			names[n.ID] = n.Subpath
+		case n.Text != "":
+			names[n.ID] = n.Text
+		default:
+			names[n.ID] = n.File + n.Label
+		}
+	}
+	var edges []string
+	for _, e := range c.Edges {
+		if !hexID.MatchString(e.ID) || names[e.ID] != "" {
+			t.Errorf("edge ID %q is not 16 hex digits, or is not unique", e.ID)
+		}
+		if names[e.FromNode] == "" || names[e.ToNode] == "" {
+			t.Errorf("edge %s names a node that does not exist", e.ID)
+		}
+		edges = append(edges, names[e.FromNode]+" -> "+names[e.ToNode])
+	}
+	return c, edges
+}
+
+func TestCanvasShowsTheParentTree(t *testing.T) {
+	out, errOut, code := sdd(t, "canvas")
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %s", code, errOut)
+	}
+	c, edges := parseCanvas(t, out)
+	want := []string{
+		"#L1_LNK_001: An interrupted upload completes without duplicate delivery -> #L0_001: Recorded data reaches the archive",
+		"#L2_LNK_001: An interrupted upload resumes after the last acknowledgement -> #L1_LNK_001: An interrupted upload completes without duplicate delivery",
+		"#L2_LNK_002: The reconnect delay is bounded -> #L1_LNK_001: An interrupted upload completes without duplicate delivery",
+		"#L2_PER_004: Acknowledgement is durable before deletion -> #L1_LNK_001: An interrupted upload completes without duplicate delivery",
+	}
+	if strings.Join(edges, "\n") != strings.Join(want, "\n") {
+		t.Errorf("edges:\n%s\nwant:\n%s", strings.Join(edges, "\n"), strings.Join(want, "\n"))
+	}
+	y := map[string]int{}
+	var files []string
+	for _, n := range c.Nodes {
+		if n.Subpath != "" {
+			y[n.Subpath[1:11]] = n.Y
+		} else if n.Type == "file" {
+			files = append(files, n.File)
+		}
+	}
+	if !(y["L0_001: Re"] < y["L1_LNK_001"] && y["L1_LNK_001"] < y["L2_PER_004"]) {
+		t.Errorf("a child is not below its parent: %v", y)
+	}
+	if got := strings.Join(files, " "); got != "sdd/system.md sdd/features/link.md sdd/features/persistence.md" {
+		t.Errorf("file nodes = %s", got)
+	}
+	if again, _, _ := sdd(t, "canvas"); again != out {
+		t.Error("a second run gives a different canvas")
+	}
+}
+
+func TestCanvasVault(t *testing.T) {
+	out, _, code := sdd(t, "canvas", "--vault", "sdd")
+	if c, _ := parseCanvas(t, out); code != 0 || c.Nodes[1].File != "system.md" {
+		t.Errorf("exit %d, first file node %+v", code, c.Nodes[1])
+	}
+	if _, errOut, code := sdd(t, "canvas", "--vault", "sdd/features"); code != 2 || !strings.Contains(errOut, "Use --vault") {
+		t.Errorf("exit %d, stderr %q, want exit 2", code, errOut)
+	}
+}
+
+func TestCanvasShowsMissingAndRetiredParents(t *testing.T) {
+	dir := writeProject(t, map[string]string{
+		"features/link.md": "---\nfeature: LNK\n---\n\n## L1\n\n" + recordText("L1_LNK_001", "L1_LNK_002") + "\n" +
+			recordText("L1_LNK_002", "L1_LNK_001") + "\n## L2\n\n" + recordText("L2_LNK_001", "L1_LNK_009") + "\n" +
+			recordText("L2_LNK_002", "L0_007"),
+		"retired.jsonl": `{"id": "L0_007", "reason": "Gone"}` + "\n",
+	})
+	out, _, code := sddIn(t, dir, "canvas")
+	_, edges := parseCanvas(t, out)
+	want := []string{
+		"#L1_LNK_001: Title of L1_LNK_001 -> #L1_LNK_002: Title of L1_LNK_002",
+		"#L1_LNK_002: Title of L1_LNK_002 -> #L1_LNK_001: Title of L1_LNK_001",
+		"#L2_LNK_001: Title of L2_LNK_001 -> **L1_LNK_009**\n\nmissing: no record and no retired entry",
+		"#L2_LNK_002: Title of L2_LNK_002 -> **L0_007**\n\nretired: Gone",
+	}
+	if code != 0 || strings.Join(edges, "\n") != strings.Join(want, "\n") {
+		t.Errorf("exit %d, edges:\n%s\nwant:\n%s", code, strings.Join(edges, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+func TestCanvasOutWritesOnlyAChange(t *testing.T) {
+	dir, out, errOut, code := sddCopy(t, "canvas", "--out", "sdd/records.canvas")
+	if out != "sdd/records.canvas  updated\n" || code != 0 {
+		t.Fatalf("exit %d, stdout %q, stderr %q", code, out, errOut)
+	}
+	canvas := filepath.Join(dir, "sdd", "records.canvas")
+	parseCanvas(t, readFile(t, canvas))
+	expect := func(args []string, want string, wantCode int) {
+		t.Helper()
+		if out, errOut, code := sddIn(t, dir, args...); out != want || code != wantCode {
+			t.Errorf("sdd %s: exit %d, stdout %q, stderr %q, want exit %d, %q",
+				strings.Join(args, " "), code, out, errOut, wantCode, want)
+		}
+	}
+	expect([]string{"canvas", "--out", "sdd/records.canvas"}, "sdd/records.canvas  unchanged\n", 0)
+	expect([]string{"canvas", "--check", "sdd/records.canvas"}, "sdd/records.canvas  current\n", 0)
+
+	// Obsidian writes the same values in its own format.
+	var values any
+	json.Unmarshal([]byte(readFile(t, canvas)), &values)
+	compact, _ := json.Marshal(values)
+	os.WriteFile(canvas, compact, 0o644)
+	expect([]string{"canvas", "--check", "sdd/records.canvas"}, "sdd/records.canvas  current\n", 0)
+
+	os.WriteFile(filepath.Join(dir, "sdd", "features", "new.md"),
+		[]byte("---\nfeature: NEW\n---\n\n"+recordText("L2_NEW_001", "L0_002")), 0o644)
+	expect([]string{"canvas", "--check", "sdd/records.canvas"},
+		"sdd/records.canvas  stale. To update it, run: sdd canvas --out sdd/records.canvas\n", 1)
+	expect([]string{"canvas", "--check", "sdd/none.canvas"},
+		"sdd/none.canvas  stale. To update it, run: sdd canvas --out sdd/none.canvas\n", 1)
+	expect([]string{"canvas", "--out", "a", "--check", "b"}, "", 2)
+}
+
+func TestCanvasOutKeepsTheVault(t *testing.T) {
+	dir, _, errOut, code := sddCopy(t, "canvas", "--vault", "sdd", "--out", "sdd/records.canvas")
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut)
+	}
+	os.WriteFile(filepath.Join(dir, "sdd", "features", "new.md"),
+		[]byte("---\nfeature: NEW\n---\n\n"+recordText("L2_NEW_001", "L0_002")), 0o644)
+	if out, _, code := sddIn(t, dir, "canvas", "--out", "sdd/records.canvas"); out != "sdd/records.canvas  updated\n" || code != 0 {
+		t.Fatalf("exit %d, stdout %q", code, out)
+	}
+	c, _ := parseCanvas(t, readFile(t, filepath.Join(dir, "sdd", "records.canvas")))
+	for _, n := range c.Nodes {
+		if strings.HasPrefix(n.File, "sdd/") {
+			t.Errorf("file %s is not in the vault sdd/", n.File)
+		}
+	}
+}
+
+func TestDeleteRefreshesTheCanvas(t *testing.T) {
+	dir, _, _, _ := sddCopy(t, "canvas", "--out", "sdd/records.canvas")
+	out, errOut, code := sddIn(t, dir, "delete", "L2_LNK_002", "--date", "2026-11-05")
+	want := "L2_LNK_002  sdd/features/link.md:45-58  deleted\n" +
+		"L2_LNK_002  sdd/retired.jsonl:3  retired\nsdd/records.canvas  updated\n"
+	if out != want || code != 0 {
+		t.Errorf("exit %d, stdout %q, stderr %q, want %q", code, out, errOut, want)
+	}
+	if _, _, code := sddIn(t, dir, "canvas", "--check", "sdd/records.canvas"); code != 0 {
+		t.Errorf("the canvas is stale after delete: exit %d", code)
+	}
+}
+
+func TestDeleteWithNoCanvasWritesNoCanvas(t *testing.T) {
+	dir, out, _, code := sddCopy(t, "delete", "L2_LNK_002", "--json")
+	var result map[string]any
+	if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || result["canvas"] != nil {
+		t.Errorf("exit %d, err %v, output %s", code, err, out)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "sdd", "records.canvas")); err == nil {
+		t.Error("delete made a canvas")
+	}
 }

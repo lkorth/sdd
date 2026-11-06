@@ -24,6 +24,7 @@ working directory. For another project, add `--root <dir>`.
 | `sdd features` | Each feature code, its file and its record counts |
 | `sdd next LEVEL [CODE]` | The next free ID, for example `sdd next L2 LNK` |
 | `sdd delete ID` | Deletes the record and retires its ID. Read the writing rules first |
+| `sdd canvas` | An Obsidian Canvas of the parent tree, as JSON. `--out FILE` writes it if it changed. `--check FILE` exits 1 if it is stale |
 
 `show`, `ancestors`, `children` and `list` also take `--short` for one line for each record, and
 `--full` for the whole record. Add `--json` to any command to get JSON.
@@ -31,6 +32,10 @@ working directory. For another project, add `--root <dir>`.
 Each answer gives a location such as `sdd/features/link.md:29-43`. To read more, read only those
 lines. If `show` names a retired ID, it prints the ledger line, for example "Renamed to
 L1_NET_002". If an ID is missing or the search finds nothing, the exit code is 1.
+
+If the project has `sdd/records.canvas`, `delete` and a hook of this plugin refresh it after each
+change. Do not edit the canvas yourself. If the hook reports an error, fix the record file that
+it names.
 
 ## Reading a record
 

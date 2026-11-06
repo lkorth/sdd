@@ -1,0 +1,17 @@
+{
+  "description": "Refresh sdd/records.canvas after Claude edits a file, if the project has that canvas.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/refresh-canvas.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

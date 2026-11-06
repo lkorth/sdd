@@ -27,6 +27,7 @@ Commands:
   features            print each feature with its file and its record counts
   next LEVEL [CODE]   print the next free ID for a level and a feature
   delete ID           delete a record and add its ID to the ledger of retired IDs
+  canvas              print an Obsidian Canvas of the parent tree, or write it with --out
 
 Detail flags, for show, ancestors, children and list:
   --short             one line for each record: ID, location and title
@@ -50,6 +51,9 @@ type options struct {
 	status              string
 	reason, date        string
 	pr                  int
+	vault               string
+	canvasOut           string
+	canvasCheck         string
 }
 
 func (o *options) detail(fallback string) string {
@@ -82,6 +86,7 @@ var commands = map[string]command{
 	"features":  {"", "Print each feature with its file and its record counts.", false, 0, 0, cmdFeatures},
 	"next":      {"LEVEL [CODE]", "Print the next free ID for a level and a feature. L0 takes no code.", false, 1, 2, cmdNext},
 	"delete":    {"ID", "Delete a record and add its ID to the ledger of retired IDs. Refuses if another record names the ID as its parent, in its obligation or in a scenario.", false, 1, 1, cmdDelete},
+	"canvas":    {"", "Print an Obsidian Canvas of the parent tree, as JSON. Each record is a card below its parent, and each card shows the record from its file. With --out, write the canvas only if it changed. With --check, exit 1 if the canvas is not current. delete refreshes sdd/records.canvas if it exists.", false, 0, 0, cmdCanvas},
 }
 
 func main() {
@@ -125,6 +130,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fs.StringVar(&o.reason, "reason", "", "why the record is gone, for the ledger")
 		fs.StringVar(&o.date, "date", "", "the `date` for the ledger, as YYYY-MM-DD. Default: today")
 		fs.IntVar(&o.pr, "pr", 0, "the pull request `number` for the ledger")
+	case "canvas":
+		fs.StringVar(&o.vault, "vault", "", "the Obsidian vault `directory`. Default: the vault of the canvas file, then the directory that holds sdd/")
+		fs.StringVar(&o.canvasOut, "out", "", "write the canvas to this `file` if it changed")
+		fs.StringVar(&o.canvasCheck, "check", "", "exit 1 if this canvas `file` is not current")
 	}
 	fs.Usage = func() {
 		fmt.Fprintf(stderr, "Usage: sdd %s [flags] %s\n\n%s\n\nFlags:\n", name, cmd.args, cmd.help)

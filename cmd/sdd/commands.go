@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -222,9 +224,10 @@ func cmdNext(c *record.Corpus, _ *options, args []string, out *printer) int {
 }
 
 type deleteResult struct {
-	ID      string   `json:"id"`
-	Deleted jsonItem `json:"deleted"`
-	Retired jsonItem `json:"retired"`
+	ID      string        `json:"id"`
+	Deleted jsonItem      `json:"deleted"`
+	Retired jsonItem      `json:"retired"`
+	Canvas  *canvasResult `json:"canvas,omitempty"`
 }
 
 func cmdDelete(c *record.Corpus, o *options, args []string, out *printer) int {
@@ -268,13 +271,36 @@ func cmdDelete(c *record.Corpus, o *options, args []string, out *printer) int {
 	}
 	entry.Path, entry.Line = path, line
 	retired := item{retired: &entry}
+	canvas := refreshCanvas(c.Dir, out)
 
 	if out.json {
-		out.writeJSON(deleteResult{id, out.toJSON(deleted, "short"), out.toJSON(retired, "")})
+		out.writeJSON(deleteResult{id, out.toJSON(deleted, "short"), out.toJSON(retired, ""), canvas})
 		return 0
 	}
 	out.printf("%s  %s  deleted\n%s\n", id, where, out.toText(retired, ""))
+	if canvas != nil {
+		out.canvasResult(*canvas)
+	}
 	return 0
+}
+
+// refreshCanvas updates the canvas in the sdd directory if it exists. The record is already
+// gone, so a failure here is a warning and not a failed delete.
+func refreshCanvas(dir string, out *printer) *canvasResult {
+	path := filepath.Join(dir, canvasName)
+	if _, err := os.Stat(path); err != nil {
+		return nil
+	}
+	c, err := record.Load(dir)
+	var status string
+	if err == nil {
+		status, err = writeCanvas(c, path, "")
+	}
+	if err != nil {
+		out.fail("%s: not updated: %v", out.path(path), err)
+		return nil
+	}
+	return &canvasResult{out.path(path), status}
 }
 
 func exitFor(items []item) int {

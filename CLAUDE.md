@@ -15,7 +15,7 @@ defect.
 | `records.md`: shape, fields, IDs, test citations and files | `skills/sdd/SKILL.md` |
 | `records.md`: levels, parents, `tbr`, prose rules, retirement | `skills/sdd/references/writing.md` |
 | `schemas/retired.schema.json` | "Retiring an ID" in `skills/sdd/references/writing.md` |
-| `README.md`: the sdd tool | "Finding records" in `skills/sdd/SKILL.md` |
+| `sdd --help`, the usage text in `cmd/sdd/main.go` | "Finding records" in `skills/sdd/SKILL.md` |
 | `foundations.md` | No copy. It explains why sdd exists, and an agent does not need it to read or write a record |
 
 After you change the skill, run `claude plugin validate .` and fix each error. Do not change the
@@ -34,6 +34,17 @@ steps:
    binary for this machine. If a step fails, it stops, and `skills/sdd/bin/` does not change.
    Do not build a binary into `skills/sdd/bin/` in a different way.
 2. Commit the binaries with the source change.
+
+### The canvas
+
+`sdd canvas` writes an Obsidian Canvas, in the [JSON Canvas](https://jsoncanvas.org/spec/1.0/)
+format. The source is `cmd/sdd/canvas.go`. Before you change it, read the `json-canvas` skill in
+[kepano/obsidian-skills](https://github.com/kepano/obsidian-skills). That skill gives the
+conventions of Obsidian for IDs, colors, layout and file nodes.
+
+The plugin hook in `hooks/` refreshes `sdd/records.canvas` after each edit that Claude makes. If
+you change the name of that file or the flags of `--out`, change the hook, the git hook in
+`README.md` and `refreshCanvas` in `cmd/sdd/commands.go` in the same commit.
 
 ## Writing
 

@@ -72,8 +72,50 @@ L1_LNK_001  sdd/features/link.md:11-25  An interrupted upload completes without 
 L0_001  sdd/system.md:5-18  Recorded data reaches the archive
 ```
 
-The commands are `show`, `ancestors`, `children`, `list`, `search`, `features`, `next` and
-`delete`. Run `sdd --help` for the flags. Add `--json` to any command to get JSON.
+To see each command, run `sdd --help`. To see the flags of one command, run
+`sdd <command> -h`. Add `--json` to any command to get JSON.
+
+### See the records in Obsidian
+
+The `canvas` command prints an [Obsidian Canvas](https://jsoncanvas.org/) of the parent tree.
+A canvas is a JSON file that Obsidian shows as a board of cards. Each record is a card below its
+parent, with an arrow to the parent. Each card shows the record from its file, so you can read a
+record on the board, or open its file with a double click. A group of cards at the left shows
+each feature file. Each feature has one color. A red card is a parent that is missing or retired.
+
+```bash
+sdd canvas --out sdd/records.canvas
+```
+
+The paths in the canvas start at the vault, the directory that you open in Obsidian. The default
+vault is the directory that holds `sdd/`. If you open a different directory, add `--vault <dir>`
+the first time. After that, `--out` keeps the vault of the file.
+
+Each card reads its record from the file, so a change to the text of a record shows at once. A
+new record, a deleted record, a new parent or a new title needs a new canvas. `--out` writes the
+file only if the canvas changed. Obsidian saves a canvas when you move a card, and the next
+`--out` puts the card back, because the tool owns the layout.
+
+Keep the canvas at `sdd/records.canvas`. Then three things refresh it:
+
+1. `sdd delete` refreshes it after it deletes a record.
+2. The `sdd` plugin has a Claude Code hook that refreshes it after each edit that Claude makes.
+   The hook does nothing in a project with no canvas.
+3. A git hook can refresh it before each commit. Put this script in `.git/hooks/pre-commit` and
+   make it executable. If git tracks the canvas, the script also stages it:
+
+```sh
+#!/bin/sh
+canvas=sdd/records.canvas
+[ -f "$canvas" ] || exit 0
+sdd canvas --out "$canvas" >/dev/null || exit 1
+if git ls-files --error-unmatch "$canvas" >/dev/null 2>&1; then
+  git add "$canvas"
+fi
+```
+
+If you commit the canvas, add `sdd canvas --check sdd/records.canvas` to CI. It exits 1 if the
+canvas is not current. If you do not commit the canvas, add it to `.gitignore`.
 
 The tool is a static binary with no runtime. The plugin ships it for Linux and macOS, on amd64
 and arm64, at `skills/sdd/bin/sdd`. To use it yourself, put that directory on your `PATH`, or
