@@ -1,8 +1,8 @@
 # sdd
 
 This repository defines sdd. It has two copies of the same rules. The docs are for people:
-`README.md`, `records.md`, `foundations.md` and `schemas/`. The `sdd` skill in `skills/sdd/` is
-for agents.
+`README.md`, `records.md`, `deriving.md`, `foundations.md` and `schemas/`. The `sdd` skill in
+`skills/sdd/` and the `derive` skill in `skills/derive/` are for agents.
 
 ## Keep the skill and the docs the same
 
@@ -16,6 +16,7 @@ defect.
 | `records.md`: levels, parents, `tbr`, prose rules, retirement | `skills/sdd/references/writing.md` |
 | `schemas/retired.schema.json` | "Retiring an ID" in `skills/sdd/references/writing.md` |
 | `sdd --help`, the usage text in `cmd/sdd/main.go` | "Finding records" in `skills/sdd/SKILL.md` |
+| `deriving.md`: sources, feature ranks, classes, rationale phrases, tests, report | `skills/derive/SKILL.md` and `skills/derive/references/evidence.md` |
 | `foundations.md` | No copy. It explains why sdd exists, and an agent does not need it to read or write a record |
 
 After you change the skill, run `claude plugin validate .` and fix each error. Do not change the
@@ -43,8 +44,8 @@ format. The source is `cmd/sdd/canvas.go`. Before you change it, read the `json-
 conventions of Obsidian for IDs, colors, layout and file nodes.
 
 The plugin hook in `hooks/` refreshes `sdd/records.canvas` after each edit that Claude makes. If
-you change the name of that file or the flags of `--out`, change the hook, the git hook in
-`README.md` and `refreshCanvas` in `cmd/sdd/commands.go` in the same commit.
+you change the name of that file or the flags of `--out`, make these changes in the same commit.
+Change the hook, the git hook in `README.md`, and `refreshCanvas` in `cmd/sdd/commands.go`.
 
 ## Writing
 

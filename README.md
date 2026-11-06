@@ -6,6 +6,7 @@ sdd is a form of [spec-driven development](https://www.ibm.com/think/topics/spec
 inspired by [OpenSpec](https://github.com/Fission-AI/openspec).
 In spec-driven development, you write the requirements before the code. In sdd, each
 requirement is a small typed record, not a paragraph. Each record has an ID and a parent.
+For a system that already exists, an agent can [derive the records](deriving.md) from the code.
 A parent is the requirement that a record exists to serve. With IDs and parents, a script
 can answer questions that prose cannot answer:
 
@@ -46,6 +47,11 @@ are detaied in [records](records.md#writing-in-simple-english).
 The `sdd` skill teaches an agent to read and write records. The agent loads it to work on code
 that a record covers, and to add, change or retire a record. sdd depends on the
 [Simple English](https://github.com/AminBlg/SimpleEnglish) skill for the general writing rules.
+
+The `derive` skill teaches an agent to write the records of a system that already exists. The agent
+reads the code, the tests, the git history, the pull requests, and the documents and diagrams that
+they link to. Then it writes the records and reports where the evidence stops. To use it, run
+`/sdd:derive`. For the method, read [deriving](deriving.md).
 
 To install both plugins in Claude Code, run these commands in the directory that holds your
 clone of this repository:
@@ -92,9 +98,9 @@ vault is the directory that holds `sdd/`. If you open a different directory, add
 the first time. After that, `--out` keeps the vault of the file.
 
 Each card reads its record from the file, so a change to the text of a record shows at once. A
-new record, a deleted record, a new parent or a new title needs a new canvas. `--out` writes the
-file only if the canvas changed. Obsidian saves a canvas when you move a card, and the next
-`--out` puts the card back, because the tool owns the layout.
+new record, a deleted record, a new parent or a new title needs a new canvas. If the canvas changed,
+`--out` writes the file. When you move a card, Obsidian saves the canvas. The next `--out` puts the
+card back, because the tool owns the layout.
 
 Keep the canvas at `sdd/records.canvas`. Then three things refresh it:
 
@@ -114,8 +120,8 @@ if git ls-files --error-unmatch "$canvas" >/dev/null 2>&1; then
 fi
 ```
 
-If you commit the canvas, add `sdd canvas --check sdd/records.canvas` to CI. It exits 1 if the
-canvas is not current. If you do not commit the canvas, add it to `.gitignore`.
+If you commit the canvas, add `sdd canvas --check sdd/records.canvas` to CI. If the canvas is not
+current, it exits 1. If you do not commit the canvas, add it to `.gitignore`.
 
 The tool is a static binary with no runtime. The plugin ships it for Linux and macOS, on amd64
 and arm64, at `skills/sdd/bin/sdd`. To use it yourself, put that directory on your `PATH`, or

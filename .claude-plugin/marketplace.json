@@ -4,13 +4,13 @@
     "name": "lkorth"
   },
   "metadata": {
-    "description": "The sdd skill for agents that write requirement records."
+    "description": "The sdd skills for agents that write requirement records."
   },
   "plugins": [
     {
       "name": "sdd",
       "source": "./",
-      "description": "An opinionated form of spec-driven development. Write, change, and retire sdd requirement records.",
+      "description": "An opinionated form of spec-driven development. Write, change, and retire sdd requirement records, and derive them from existing code.",
       "version": "0.1.0"
     }
   ]

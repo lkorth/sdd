@@ -24,7 +24,7 @@ working directory. For another project, add `--root <dir>`.
 | `sdd features` | Each feature code, its file and its record counts |
 | `sdd next LEVEL [CODE]` | The next free ID, for example `sdd next L2 LNK` |
 | `sdd delete ID` | Deletes the record and retires its ID. Read the writing rules first |
-| `sdd canvas` | An Obsidian Canvas of the parent tree, as JSON. `--out FILE` writes it if it changed. `--check FILE` exits 1 if it is stale |
+| `sdd canvas` | An Obsidian Canvas of the parent tree, as JSON. If it changed, `--out FILE` writes it. If it is stale, `--check FILE` exits 1 |
 
 `show`, `ancestors`, `children` and `list` also take `--short` for one line for each record, and
 `--full` for the whole record. Add `--json` to any command to get JSON.
@@ -108,3 +108,5 @@ character. `sdd/retired.jsonl` lists the spent IDs that no record uses now.
 
 Before you add, edit or retire a record, read [writing.md](references/writing.md). It has the
 rules for levels, parents, IDs, `tbr` numbers, prose and retirement.
+
+To write the records of a system that already exists, use the `derive` skill.

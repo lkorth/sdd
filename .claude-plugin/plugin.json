@@ -1,6 +1,6 @@
 {
   "name": "sdd",
-  "description": "An opinionated form of spec-driven development. Write, change, and retire sdd requirement records.",
+  "description": "An opinionated form of spec-driven development. Write, change, and retire sdd requirement records, and derive them from existing code.",
   "version": "0.1.0",
   "author": {
     "name": "lkorth"
